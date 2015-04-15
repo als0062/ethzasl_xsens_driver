@@ -132,6 +132,7 @@ class XSensDriver(object):
 
 		# get data
 		data = self.mt.read_measurement()
+
 		# common header
 		h = Header()
 		h.stamp = rospy.Time.now()
@@ -146,6 +147,15 @@ class XSensDriver(object):
 		position_data = data.get('Pos')
 		rawgps_data = data.get('RAWGPS')
 		status = data.get('Stat')	# int
+
+		# get data (from new serial MTi device)
+		accel_data = data.get('Acceleration')
+		gyro_data = data.get('Angular Velocity')
+
+		# print this['accX']
+		# print data
+
+
 
 		# create messages and default values
 		imu_msg = Imu()
@@ -210,6 +220,46 @@ class XSensDriver(object):
 		if temp is not None:
 			pub_temp = True
 			temp_msg.data = temp
+		##########################################################################################################
+		if gyro_data:
+			try:
+				x = gyro_data['gyrX']
+				y = gyro_data['gyrY']
+				z = gyro_data['gyrZ']
+
+				v = numpy.array([x, y, z])
+				v = v.dot(self.R)
+
+				imu_msg.angular_velocity.x = v[0]
+				imu_msg.angular_velocity.y = v[1]
+				imu_msg.angular_velocity.z = v[2]
+				imu_msg.angular_velocity_covariance = (radians(0.025), 0., 0., 0.,
+						radians(0.025), 0., 0., 0., radians(0.025))
+				pub_imu = True
+				vel_msg.twist.angular.x = v[0]
+				vel_msg.twist.angular.y = v[1]
+				vel_msg.twist.angular.z = v[2]
+				pub_vel = True
+			except KeyError:
+				pass
+		if accel_data:
+			try:
+				x = accel_data['accX']
+				y = accel_data['accY']
+				z = accel_data['accZ']
+
+				v = numpy.array([x, y, z])
+				v = v.dot(self.R)
+
+				imu_msg.linear_acceleration.x = v[0]
+				imu_msg.linear_acceleration.y = v[1]
+				imu_msg.linear_acceleration.z = v[2]
+				imu_msg.linear_acceleration_covariance = (0.0004, 0., 0., 0.,
+						0.0004, 0., 0., 0., 0.0004)
+				pub_imu = True
+			except KeyError:
+				pass
+		##########################################################################################################
 		if imu_data:
 			try:
 				x = imu_data['gyrX']
