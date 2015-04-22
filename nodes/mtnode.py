@@ -151,11 +151,11 @@ class XSensDriver(object):
 		# get data (from new serial MTi device)
 		accel_data = data.get('Acceleration')
 		gyro_data = data.get('Angular Velocity')
-
+		pvt_data = data.get('PVT')
 		# print this['accX']
 		# print data
 
-
+		# print pvt_data
 
 		# create messages and default values
 		imu_msg = Imu()

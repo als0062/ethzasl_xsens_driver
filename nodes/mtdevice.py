@@ -16,7 +16,7 @@ verbose = False
 class MTDevice(object):
 	"""XSens MT device communication object."""
 
-	def __init__(self, port, baudrate=115200, timeout=0.001, autoconf=True,
+	def __init__(self, port, baudrate=115200, timeout=0.001, autoconf=False,
 			config_mode=False):
 		"""Open device."""
 		## serial interface to the device
@@ -28,15 +28,23 @@ class MTDevice(object):
 		self.timeout = 100*timeout
 		if autoconf:
 			self.auto_config()
+			print "MODE:"
+			print self.mode
+			print "SETTINGS:"
+			print self.settings
+			print "LENGTH:"
+			print self.length
+			print "HEADER:"
+			print self.header
 		else:
 			## mode parameter of the IMU
-			self.mode = None
+			self.mode = 2055
 			## settings parameter of the IMU
-			self.settings = None
+			self.settings = 1
 			## length of the MTData message
-			self.length = None
+			self.length = 59
 			## header of the MTData message
-			self.header = None
+			self.header = '\xFA\xFF\x32'+chr(self.length)
 		if config_mode:
 			self.GoToConfig()
 
@@ -392,8 +400,9 @@ class MTDevice(object):
 	## Read and parse a measurement packet
 	def read_measurement(self, mode=None, settings=None):
 		# getting data
-		#data = self.read_data_msg()
-		mid, data = self.read_msg()
+		data = self.read_data_msg()
+		mid = 0x32
+		# mid, data = self.read_msg()
 		if mid==MID.MTData:
 			return self.parse_MTData(data, mode, settings)
 		elif mid==MID.MTData2:
@@ -495,6 +504,7 @@ class MTDevice(object):
 						struct.unpack('!'+4*ffmt, content)
 			else:
 				raise MTException("unknown packet: 0x%04X."%data_id)
+			
 			return o
 		def parse_GPS(data_id, content, ffmt):
 			o = {}
@@ -527,6 +537,34 @@ class MTDevice(object):
 			else:
 				raise MTException("unknown packet: 0x%04X."%data_id)
 			return o
+		#######################################################################################
+		def parse_PVT(data_id, content, ffmt):
+			o = {}
+			if (data_id&0x00F0) == 0x10:	# PVT Data
+				# o['itow']=struct.unpack('!L', content)
+				o['iTOW'],o['year'],o['month'],o['day'],o['hour'],o['min'],o['sec'],o['valid'],\
+				o['tAcc'],o['nano'],o['fixtype'],o['flags'],o['numSV'],o['Reserved1'],lon,\
+				lat,hgt,hmsl,hacc,vacc,veln,vele,veld,gspeed,headmot,sacc,headacc,headveh,\
+				gdop,pdop,tdop,vdop,hdop,ndop,edop = struct.unpack('!LHBBBBBBLlBBBBllllLLlllllLLlHHHHHHH', content)
+				
+				o['lon']=lon*0.0000001;
+				o['lat']=lat*0.0000001;
+				o['height']=hgt*1000;
+				# print lon*0.0000001,lat*0.0000001
+			# # elif (data_id&0x00F0) == 0x20:	# SV Info
+			# # 	o['iTOW'], o['numCh'] = struct.unpack('!LBxx', content[:8])
+			# # 	channels = []
+			# # 	ch = {}
+			# # 	for i in range(o['numCh']):
+			# # 		ch['chn'], ch['svid'], ch['flags'], ch['quality'], \
+			# # 				ch['cno'], ch['elev'], ch['azim'], ch['prRes'] = \
+			# # 				struct.unpack('!BBBBBbhl', content[8+12*i:20+12*i])
+			# # 		channels.append(ch)
+			# # 	o['channels'] = channels
+			# else:
+			# 	raise MTException("unknown packet: 0x%04X."%data_id)
+			return o
+		#######################################################################################
 		def parse_SCR(data_id, content, ffmt):
 			o = {}
 			if (data_id&0x00F0) == 0x10:	# ACC+GYR+MAG+Temperature
@@ -590,6 +628,8 @@ class MTDevice(object):
 				content = data[3:3+size]
 				data = data[3+size:]
 				group = data_id&0xFF00
+
+
 				ffmt = float_format
 				if group == XDIGroup.Temperature:
 					output['Temperature'] = parse_temperature(data_id, content, ffmt)
@@ -617,6 +657,8 @@ class MTDevice(object):
 					output['Velocity'] = parse_velocity(data_id, content, ffmt)
 				elif group == XDIGroup.Status:
 					output['Status'] = parse_status(data_id, content, ffmt)
+				elif group == XDIGroup.PVT:
+					output['PVT'] = parse_PVT(data_id, content, ffmt)
 				else:
 					raise MTException("unknown XDI group: 0x%04X."%group)
 			except struct.error, e:

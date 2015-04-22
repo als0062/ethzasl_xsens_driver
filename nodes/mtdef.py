@@ -228,6 +228,7 @@ class XDIGroup:
 	Acceleration			= 0x4000
 	Position				= 0x5000
 	AngularVelocity			= 0x8000
+	PVT						= 0x7000
 	GPS						= 0x8800
 	SensorComponentReadout	= 0xA000
 	AnalogIn				= 0xB000
