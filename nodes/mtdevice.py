@@ -105,8 +105,10 @@ class MTDevice(object):
 				continue
 			data = str(buf[-self.length-1:-1])
 			del buf[:]
+			print data
 			return data
 		else:
+			print time.time()-start
 			raise MTException("could not find MTData message.")
 
 	## Low-level message receiving function.
@@ -400,9 +402,9 @@ class MTDevice(object):
 	## Read and parse a measurement packet
 	def read_measurement(self, mode=None, settings=None):
 		# getting data
-		data = self.read_data_msg()
-		mid = 0x32
-		# mid, data = self.read_msg()
+		#data = self.read_data_msg()
+		#mid = 0x32
+		mid, data = self.read_msg()
 		if mid==MID.MTData:
 			return self.parse_MTData(data, mode, settings)
 		elif mid==MID.MTData2:
@@ -550,6 +552,12 @@ class MTDevice(object):
 				o['lon']=lon*0.0000001;
 				o['lat']=lat*0.0000001;
 				o['height']=hgt*1000;
+
+				###########
+				o['cov_E'] = o['cov_N']=hacc*1000 
+
+				print lon
+
 				# print lon*0.0000001,lat*0.0000001
 			# # elif (data_id&0x00F0) == 0x20:	# SV Info
 			# # 	o['iTOW'], o['numCh'] = struct.unpack('!LBxx', content[:8])
