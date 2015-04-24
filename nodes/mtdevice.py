@@ -549,15 +549,19 @@ class MTDevice(object):
 				lat,hgt,hmsl,hacc,vacc,veln,vele,veld,gspeed,headmot,sacc,headacc,headveh,\
 				gdop,pdop,tdop,vdop,hdop,ndop,edop = struct.unpack('!LHBBBBBBLlBBBBllllLLlllllLLlHHHHHHH', content)
 				
-				o['lon']=lon*0.0000001;
-				o['lat']=lat*0.0000001;
-				o['height']=hgt*1000;
+				o['lon']=lon*0.0000001
+				o['lat']=lat*0.0000001
+				o['height']=hgt*1000
 
 				###########
-				o['cov_E'] = o['cov_N']=hacc*1000 
+				o['cov_E'] = o['cov_N'] = (hacc/1000)*(hacc/1000)/2 
+				o['cov_D'] = (vacc/1000)**(2)
 
-				print lon
-
+			else:
+				raise MTException("unknown packet: 0x%04X."%data_id)
+			
+			return o
+		############################################################################################
 				# print lon*0.0000001,lat*0.0000001
 			# # elif (data_id&0x00F0) == 0x20:	# SV Info
 			# # 	o['iTOW'], o['numCh'] = struct.unpack('!LBxx', content[:8])
@@ -571,7 +575,6 @@ class MTDevice(object):
 			# # 	o['channels'] = channels
 			# else:
 			# 	raise MTException("unknown packet: 0x%04X."%data_id)
-			return o
 		#######################################################################################
 		def parse_SCR(data_id, content, ffmt):
 			o = {}

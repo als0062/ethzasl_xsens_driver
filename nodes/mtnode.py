@@ -260,9 +260,27 @@ class XSensDriver(object):
 			except KeyError:
 				pass
 		##########################################################################################
+		
 		if pvt_data:
 			try:
-				pub_gps=True
+				# print type(pvt_data['lat'])
+				tlat = pvt_data['lat']
+				tlon = pvt_data['lon']
+				thgt = pvt_data['height']
+				gps_msg.latitude = tlat
+				gps_msg.longitude = tlon
+				gps_msg.altitude = thgt
+				
+				horiz_acc = pvt_data['cov_N'] 
+				vert_acc = pvt_data['cov_D']
+
+				gps_msg.position_covariance = (horiz_acc, 0., 0., 0., horiz_acc, 0., 0., 0., vert_acc)
+
+				
+				pub_gps = True
+			except KeyError:
+				pass
+
 		##########################################################################################################
 		if imu_data:
 			try:
